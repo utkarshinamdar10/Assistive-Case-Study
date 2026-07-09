@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>sEMG Prosthesis & Haptic Feedback Simulation Dashboard</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <header class="app-header">
+            <div class="header-left">
+                <div class="status-indicator-dot pulsing"></div>
+                <h1>MyoHap sEMG Prosthesis Simulator</h1>
+                <span class="badge">V1.0 - Experimental Base</span>
+            </div>
+            <div class="header-right">
+                <div class="telemetry-compact">
+                    <span>Status: <strong id="system-status-text" class="status-active">SIMULATING</strong></span>
+                    <span class="separator">|</span>
+                    <span>FPS: <strong id="fps-counter">60</strong></span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Workspace -->
+        <main class="app-workspace">
+            
+            <!-- Left Side: Controls -->
+            <section class="panel controls-panel">
+                <div class="panel-header">
+                    <h2>Simulation Controls</h2>
+                </div>
+                
+                <!-- 1. sEMG Signal Generator -->
+                <div class="control-group">
+                    <h3>1. sEMG Signal Generator</h3>
+                    <div class="slider-container">
+                        <div class="slider-label">
+                            <span>Muscle Contraction (Activation)</span>
+                            <span class="slider-val" id="contraction-val">0%</span>
+                        </div>
+                        <input type="range" id="contraction-intensity" min="0" max="100" value="0" class="slider">
+                        <!-- Quick Trigger Button for ease of contraction testing -->
+                        <button type="button" id="trigger-contraction-btn" class="btn btn-secondary">Pulse Contraction (1.5s)</button>
+                    </div>
+
+                    <div class="slider-container">
+                        <div class="slider-label">
+                            <span>Electrode Base Noise</span>
+                            <span class="slider-val" id="noise-val">50 ADC</span>
+                        </div>
+                        <input type="range" id="base-noise" min="0" max="150" value="50" class="slider">
+                    </div>
+
+                    <div class="slider-container">
+                        <div class="slider-label">
+                            <span>Signal Interference Frequency</span>
+                            <span class="slider-val" id="freq-val">100 Hz</span>
+                        </div>
+                        <input type="range" id="signal-frequency" min="20" max="250" value="100" class="slider">
+                    </div>
+                </div>
+
+                <!-- 1b. Hardware Sensor Connection -->
+                <div class="control-group">
+                    <h3>1b. Hardware Sensor Connection</h3>
+                    <div class="form-row">
+                        <label for="serial-baud">Baud Rate</label>
+                        <select id="serial-baud" class="select-input">
+                            <option value="9600">9600 bps</option>
+                            <option value="57600">57600 bps</option>
+                            <option value="115200" selected>115200 bps</option>
+                        </select>
+                    </div>
+                    <div class="slider-container" style="margin-top: 4px;">
+                        <button type="button" id="serial-connect-btn" class="btn btn-success" style="width: 100%;">Connect sEMG Sensor</button>
+                        <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.8rem; margin-top: 6px;">
+                            <span>Hardware Port:</span>
+                            <strong id="serial-port-text" style="color: var(--text-muted); font-family: var(--font-digital);">DISCONNECTED</strong>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 2. DSP Pipeline Settings -->
+                <div class="control-group">
+                    <h3>2. Digital Signal Processing</h3>
+                    <div class="form-row">
+                        <label for="filter-type">Bandpass Filter</label>
+                        <select id="filter-type" class="select-input">
+                            <option value="none">None (Raw Rectification)</option>
+                            <option value="butterworth" selected>Butterworth Approx (50-450Hz)</option>
+                        </select>
+                    </div>
+
+                    <div class="slider-container">
+                        <div class="slider-label">
+                            <span>Smoothing Window (Moving Avg)</span>
+                            <span class="slider-val" id="window-val">50 ms</span>
+                        </div>
+                        <input type="range" id="dsp-window" min="10" max="150" value="50" class="slider">
+                    </div>
+
+                    <div class="slider-container">
+                        <div class="slider-label">
+                            <span>Activation Threshold</span>
+                            <span class="slider-val" id="threshold-val">150 ADC</span>
+                        </div>
+                        <input type="range" id="control-threshold" min="20" max="500" value="150" class="slider">
+                    </div>
+                </div>
+
+                <!-- 3. Hand & Haptic Loop -->
+                <div class="control-group">
+                    <h3>3. Hand & Feedback Settings</h3>
+                    <div class="slider-container">
+                        <div class="slider-label">
+                            <span>Hand Closing Speed</span>
+                            <span class="slider-val" id="speed-val">1.0x</span>
+                        </div>
+                        <input type="range" id="hand-speed" min="2" max="30" value="10" class="slider" step="1">
+                    </div>
+
+                    <div class="form-row">
+                        <label for="haptic-map">Haptic Feedback Curve</label>
+                        <select id="haptic-map" class="select-input">
+                            <option value="linear" selected>Linear Map</option>
+                            <option value="exponential">Exponential Map (Sensation Boost)</option>
+                            <option value="step">Step Modulated (Discrete Levels)</option>
+                        </select>
+                    </div>
+
+                    <div class="slider-container">
+                        <div class="slider-label">
+                            <span>Haptic Base PWM (Min Buzz)</span>
+                            <span class="slider-val" id="min-pwm-val">100</span>
+                        </div>
+                        <input type="range" id="min-pwm" min="0" max="180" value="100" class="slider">
+                    </div>
+
+                    <div class="slider-container">
+                        <div class="slider-label">
+                            <span>Haptic Sensitivity</span>
+                            <span class="slider-val" id="haptic-sens-val">1.0</span>
+                        </div>
+                        <input type="range" id="haptic-sensitivity" min="5" max="30" value="10" class="slider">
+                    </div>
+                </div>
+
+                <!-- 4. Environment & Obstruction -->
+                <div class="control-group">
+                    <h3>4. Contact Object</h3>
+                    <div class="slider-container">
+                        <div class="slider-label">
+                            <span>Object Position (Contact Point)</span>
+                            <span class="slider-val" id="obj-pos-val">80%</span>
+                        </div>
+                        <input type="range" id="object-position" min="50" max="100" value="80" class="slider">
+                    </div>
+
+                    <div class="slider-container">
+                        <div class="slider-label">
+                            <span>Object Stiffness / Hardness</span>
+                            <span class="slider-val" id="obj-hard-val">1.0</span>
+                        </div>
+                        <input type="range" id="object-hardness" min="2" max="25" value="10" class="slider">
+                    </div>
+                </div>
+            </section>
+
+            <!-- Middle Side: Real-time scrolling plots -->
+            <section class="panel visualization-panel">
+                <div class="panel-header">
+                    <h2>Real-Time Signal & Physics Telemetry</h2>
+                    <div class="graph-legend">
+                        <span class="legend-item"><span class="color-dot emg-color"></span>Raw sEMG</span>
+                        <span class="legend-item"><span class="color-dot envelope-color"></span>Envelope</span>
+                        <span class="legend-item"><span class="color-dot threshold-color"></span>Threshold</span>
+                    </div>
+                </div>
+
+                <div class="charts-container">
+                    <!-- Graph 1: sEMG + Envelope -->
+                    <div class="chart-wrapper">
+                        <div class="chart-title">sEMG Signal & Rectified Envelope (ADC)</div>
+                        <canvas id="chart-emg" height="130"></canvas>
+                    </div>
+
+                    <!-- Graph 2: Hand Position vs Threshold -->
+                    <div class="chart-wrapper">
+                        <div class="chart-title">Prosthetic Hand Position (0 = Open, 1 = Fully Closed)</div>
+                        <canvas id="chart-position" height="100"></canvas>
+                    </div>
+
+                    <!-- Graph 3: Grip Force -->
+                    <div class="chart-wrapper">
+                        <div class="chart-title">Grip Force / Pressure (Normalized 0-1)</div>
+                        <canvas id="chart-force" height="100"></canvas>
+                    </div>
+
+                    <!-- Graph 4: Haptic PWM -->
+                    <div class="chart-wrapper">
+                        <div class="chart-title">Haptic Feedback Intensity (PWM 0-255)</div>
+                        <canvas id="chart-haptic" height="100"></canvas>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Right Side: Interactive Hand Animation & Direct Outputs -->
+            <section class="panel hand-panel">
+                <div class="panel-header">
+                    <h2>Interactive Prosthetic Model</h2>
+                </div>
+
+                <div class="hand-visualizer-container">
+                    <!-- Target position indicator / warning bar -->
+                    <div class="status-banner" id="haptic-alert-banner">
+                        NO CONTACT
+                    </div>
+                    
+                    <div class="svg-container">
+                        <!-- Prosthetic Hand SVG -->
+                        <svg id="hand-svg" viewBox="0 0 200 250">
+                            <!-- Definition of gradients for premium neon look -->
+                            <defs>
+                                <linearGradient id="palm-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+                                    <stop offset="0%" stop-color="#1e293b" />
+                                    <stop offset="100%" stop-color="#0f172a" />
+                                </linearGradient>
+                                <radialGradient id="haptic-glow" cx="50%" cy="50%" r="50%">
+                                    <stop offset="0%" stop-color="#ef4444" stop-opacity="1" />
+                                    <stop offset="100%" stop-color="#ef4444" stop-opacity="0" />
+                                </radialGradient>
+                            </defs>
+                            
+                            <!-- Obstruction Object (Visually represented) -->
+                            <rect id="visual-object" x="35" y="15" width="130" height="25" rx="6" fill="#f57c00" stroke="#ffb74d" stroke-width="2" opacity="0.9"/>
+                            <text id="visual-object-label" x="100" y="32" fill="#ffffff" font-size="10" font-family="'Space Grotesk', sans-serif" text-anchor="middle" font-weight="bold">TARGET OBJECT</text>
+
+                            <!-- Metal structural forearm attachment -->
+                            <path d="M 70,230 L 130,230 L 120,250 L 80,250 Z" fill="#334155" stroke="#475569" stroke-width="2" />
+                            
+                            <!-- Robotic Palm -->
+                            <path d="M 55,200 L 45,130 Q 45,100 70,95 L 130,95 Q 155,100 155,130 L 145,200 Q 100,210 55,200 Z" fill="url(#palm-grad)" stroke="#475569" stroke-width="3" />
+                            
+                            <!-- Finger Joints/Chassis Base -->
+                            <circle cx="70" cy="100" r="5" fill="#3b82f6"/>
+                            <circle cx="90" cy="97" r="5" fill="#3b82f6"/>
+                            <circle cx="110" cy="97" r="5" fill="#3b82f6"/>
+                            <circle cx="130" cy="100" r="5" fill="#3b82f6"/>
+                            <circle cx="50" cy="140" r="5" fill="#3b82f6"/>
+
+                            <!-- Fingers will be updated in JS (using dynamic group transforms/lines) -->
+                            <!-- Thumb -->
+                            <g id="svg-thumb" stroke="#3b82f6" stroke-linecap="round">
+                                <line x1="50" y1="140" x2="35" y2="125" stroke-width="7"/>
+                                <line x1="35" y1="125" x2="22" y2="115" stroke-width="5"/>
+                            </g>
+                            
+                            <!-- Index -->
+                            <g id="svg-index" stroke="#10b981" stroke-linecap="round">
+                                <line x1="70" y1="100" x2="70" y2="70" stroke-width="7"/>
+                                <line x1="70" y1="70" x2="70" y2="45" stroke-width="5"/>
+                            </g>
+                            
+                            <!-- Middle -->
+                            <g id="svg-middle" stroke="#10b981" stroke-linecap="round">
+                                <line x1="90" y1="97" x2="90" y2="62" stroke-width="7"/>
+                                <line x1="90" y1="62" x2="90" y2="35" stroke-width="5"/>
+                            </g>
+                            
+                            <!-- Ring -->
+                            <g id="svg-ring" stroke="#10b981" stroke-linecap="round">
+                                <line x1="110" y1="97" x2="110" y2="65" stroke-width="7"/>
+                                <line x1="110" y1="65" x2="110" y2="38" stroke-width="5"/>
+                            </g>
+                            
+                            <!-- Pinky -->
+                            <g id="svg-pinky" stroke="#10b981" stroke-linecap="round">
+                                <line x1="130" y1="100" x2="130" y2="75" stroke-width="7"/>
+                                <line x1="130" y1="75" x2="130" y2="55" stroke-width="5"/>
+                            </g>
+
+                            <!-- Haptic Feedback Ring Visualizers (Pulsing circles at index tip) -->
+                            <g id="haptic-pulses">
+                                <circle id="pulse-1" cx="70" cy="45" r="8" fill="none" stroke="#ef4444" stroke-width="1.5" opacity="0"/>
+                                <circle id="pulse-2" cx="70" cy="45" r="14" fill="none" stroke="#ef4444" stroke-width="1" opacity="0"/>
+                                <circle id="pulse-3" cx="70" cy="45" r="20" fill="none" stroke="#ef4444" stroke-width="0.5" opacity="0"/>
+                            </g>
+                            <circle id="haptic-sensor-dot" cx="70" cy="45" r="4.5" fill="#ef4444" stroke="#ffffff" stroke-width="1" opacity="0"/>
+                        </svg>
+                    </div>
+                </div>
+
+                <!-- Digital Telemetry Dashboard -->
+                <div class="digital-readout">
+                    <div class="readout-grid">
+                        <div class="readout-cell">
+                            <span class="cell-lbl">EMG RMS (ENV)</span>
+                            <span class="cell-val" id="readout-rms">0.0 ADC</span>
+                        </div>
+                        <div class="readout-cell">
+                            <span class="cell-lbl">Hand Position</span>
+                            <span class="cell-val" id="readout-pos">0.00 (Open)</span>
+                        </div>
+                        <div class="readout-cell">
+                            <span class="cell-lbl">Grip Force</span>
+                            <span class="cell-val" id="readout-force">0.00 N</span>
+                        </div>
+                        <div class="readout-cell">
+                            <span class="cell-lbl">Haptic Feedback</span>
+                            <span class="cell-val" id="readout-pwm">0 PWM</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <!-- Bottom: Offline File Analysis & Processing -->
+        <footer class="app-analysis">
+            <div class="panel-header">
+                <h2>Offline CSV Analysis & Data Export</h2>
+            </div>
+            
+            <div class="analysis-grid">
+                <!-- Dropzone -->
+                <div class="upload-container">
+                    <div id="drag-drop-zone" class="drag-drop-zone">
+                        <svg class="upload-icon" viewBox="0 0 24 24" width="36" height="36" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                            <polyline points="17 8 12 3 7 8"></polyline>
+                            <line x1="12" y1="3" x2="12" y2="15"></line>
+                        </svg>
+                        <p>Drag & drop sEMG CSV here or click to browse</p>
+                        <span class="subtext">Expected format: <code>Timestamp_ms, EMG_Value</code></span>
+                        <input type="file" id="csv-file-input" accept=".csv" class="hidden-file-input">
+                    </div>
+                </div>
+
+                <!-- CSV Playback & Control -->
+                <div class="csv-playback-controls">
+                    <div class="file-info-bar">
+                        <span id="loaded-file-name">No CSV file loaded</span>
+                        <button type="button" id="clear-csv-btn" class="btn btn-danger btn-sm" disabled>Clear</button>
+                    </div>
+                    <div class="playback-btn-group">
+                        <button type="button" id="csv-play-btn" class="btn btn-primary" disabled>Run CSV Stream</button>
+                        <button type="button" id="csv-loop-btn" class="btn btn-secondary" disabled>Toggle Loop</button>
+                        <button type="button" id="export-telemetry-btn" class="btn btn-success">Export Telemetry CSV</button>
+                    </div>
+                </div>
+
+                <!-- Metrics Summary Card -->
+                <div class="metrics-summary-card">
+                    <h3>Processed Metrics Summary</h3>
+                    <div class="summary-details">
+                        <div class="summary-row">
+                            <span>Total Data Points Analyzed:</span>
+                            <strong id="sum-points">-</strong>
+                        </div>
+                        <div class="summary-row">
+                            <span>Mean Signal SNR:</span>
+                            <strong id="sum-snr">- dB</strong>
+                        </div>
+                        <div class="summary-row">
+                            <span>Detected Contraction Bursts:</span>
+                            <strong id="sum-bursts">-</strong>
+                        </div>
+                        <div class="summary-row">
+                            <span>Max Compression Grip Force:</span>
+                            <strong id="sum-force">-</strong>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </footer>
+    </div>
+
+    <!-- Main Application Code -->
+    <script src="app.js"></script>
+</body>
+</html>

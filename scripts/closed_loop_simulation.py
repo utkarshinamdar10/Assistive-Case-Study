@@ -72,7 +72,7 @@ class FeedbackSystem:
         pwm = 100 + (pressure * 155)
         return int(min(255, pwm))
 
-def main():
+def main(data_folder, media_folder):
     print("Starting Closed-Loop EMG Simulation...")
     fs = 1000
     duration = 10.0 # total seconds
@@ -130,7 +130,8 @@ def main():
         
     print("Simulation complete. Generating plots...")
     
-    # Save to CSV
+    # Save to CSV (in data/ folder)
+    csv_path = os.path.join(data_folder, "closed_loop_results.csv")
     df = pd.DataFrame({
         'Time': t_full,
         'EMG': emg_history,
@@ -139,7 +140,6 @@ def main():
         'Pressure': pressure_history,
         'FeedbackPWM': feedback_history
     })
-    csv_path = "EMG_Project/closed_loop_results.csv"
     df.to_csv(csv_path, index=False)
     print(f"Results saved to {csv_path}")
     
@@ -167,13 +167,25 @@ def main():
     axs[3].set_xlabel("Time (seconds)")
     
     plt.tight_layout()
-    plot_path = "EMG_Project/closed_loop_plot.png"
+    # Save Plot to File (in media/ folder)
+    plot_path = os.path.join(media_folder, "closed_loop_plot.png")
     plt.savefig(plot_path, dpi=300)
     print(f"Plot saved to {plot_path}")
-    
-    # plt.show() # Uncomment if running locally
+    plt.show()
 
 if __name__ == "__main__":
-    if not os.path.exists("EMG_Project"):
-        os.makedirs("EMG_Project")
-    main()
+    # Check for correct folders relative to execution context
+    data_folder = "data"
+    media_folder = "media"
+    
+    if not os.path.exists(data_folder) and os.path.exists("../data"):
+        data_folder = "../data"
+        media_folder = "../media"
+        
+    if not os.path.exists(data_folder):
+        os.makedirs(data_folder)
+        
+    if not os.path.exists(media_folder):
+        os.makedirs(media_folder)
+        
+    main(data_folder, media_folder)

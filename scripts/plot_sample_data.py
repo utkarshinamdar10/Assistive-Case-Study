@@ -79,12 +79,26 @@ def process_and_plot(signal, label, output_dir):
     plt.show()
 
 if __name__ == "__main__":
-    input_file = os.path.join('EMG_Project', 'data', 'EMG-data (1).mat')
-    output_folder = 'EMG_Project'
+    # Check both repository root and scripts directory relative path
+    paths_to_try = [
+        ('data/EMG-data.mat', 'data'),
+        ('../data/EMG-data.mat', '../data')
+    ]
     
-    if not os.path.exists(output_folder):
-        os.makedirs(output_folder)
-        
-    signal, key_name = load_emg_from_mat(input_file)
-    if signal is not None:
-        process_and_plot(signal, key_name, output_folder)
+    input_file = None
+    output_folder = None
+    for inp, out in paths_to_try:
+        if os.path.exists(inp):
+            input_file = inp
+            output_folder = out
+            break
+            
+    if input_file and output_folder:
+        if not os.path.exists(output_folder):
+            os.makedirs(output_folder)
+            
+        signal, key_name = load_emg_from_mat(input_file)
+        if signal is not None:
+            process_and_plot(signal, key_name, output_folder)
+    else:
+        print("Error: Could not find EMG-data.mat inside data/ folder.")

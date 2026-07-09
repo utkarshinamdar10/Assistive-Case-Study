@@ -1,10 +1,22 @@
 import scipy.io
 import os
 
-file_path = os.path.join('EMG_Project', 'data', 'EMG-data (1).mat')
-if os.path.exists(file_path):
+# Check both repository root and scripts directory relative path
+paths_to_try = [
+    os.path.join('data', 'EMG-data.mat'),
+    os.path.join('..', 'data', 'EMG-data.mat')
+]
+
+file_path = None
+for path in paths_to_try:
+    if os.path.exists(path):
+        file_path = path
+        break
+
+if file_path:
     try:
         data = scipy.io.loadmat(file_path)
+        print(f"Successfully loaded: {file_path}")
         print("Keys in MAT file:", list(data.keys()))
         for key in data.keys():
             if not key.startswith('__'):
@@ -12,4 +24,4 @@ if os.path.exists(file_path):
     except Exception as e:
         print(f"Error reading file: {e}")
 else:
-    print(f"File not found at {file_path}")
+    print("Error: EMG-data.mat not found in data/ or ../data/ directories.")

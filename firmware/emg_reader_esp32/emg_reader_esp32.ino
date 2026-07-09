@@ -7,7 +7,7 @@ unsigned long lastSampleTime = 0;
 void setup() {
   Serial.begin(115200);
   analogReadResolution(12);
-  analogSetAttenuation(ADC_11db);
+  analogSetAttenuation(ADC_ATTEN_DB_11);
   pinMode(emgPin, INPUT);
 }
 

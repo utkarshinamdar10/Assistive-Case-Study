@@ -32,7 +32,7 @@ def generate_synthetic_emg(duration_sec=5, fs=1000):
     
     return t, emg_signal
 
-def main():
+def main(data_folder, media_folder):
     print("Simulating ESP32 EMG data acquisition...")
     fs = 1000  # 1000 Hz
     duration = 5 # seconds
@@ -45,8 +45,8 @@ def main():
         'EMG_Value': emg_data.astype(int)
     })
     
-    # Save Data to CSV
-    csv_filename = "EMG_Project/simulated_emg_data.csv"
+    # Save Data to CSV (in data/ folder)
+    csv_filename = os.path.join(data_folder, "simulated_emg_data.csv")
     df.to_csv(csv_filename, index=False)
     print(f"Simulated data saved to: {csv_filename}")
     
@@ -65,15 +65,26 @@ def main():
     plt.legend()
     plt.grid(True, alpha=0.3)
     
-    # Save Plot to File
-    plot_filename = "EMG_Project/emg_simulation_plot.png"
+    # Save Plot to File (in media/ folder)
+    plot_filename = os.path.join(media_folder, "emg_simulation_plot.png")
     plt.savefig(plot_filename, dpi=300)
     print(f"Simulation plot saved to: {plot_filename}")
     
     plt.show()
 
 if __name__ == "__main__":
-    # Ensure directory exists
-    if not os.path.exists("EMG_Project"):
-        os.makedirs("EMG_Project")
-    main()
+    # Check for correct folders relative to execution context
+    data_folder = "data"
+    media_folder = "media"
+    
+    if not os.path.exists(data_folder) and os.path.exists("../data"):
+        data_folder = "../data"
+        media_folder = "../media"
+        
+    if not os.path.exists(data_folder):
+        os.makedirs(data_folder)
+        
+    if not os.path.exists(media_folder):
+        os.makedirs(media_folder)
+        
+    main(data_folder, media_folder)

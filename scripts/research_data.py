@@ -3,7 +3,14 @@ import os
 import glob
 
 def inspect_files():
-    mat_files = glob.glob('EMG_Project/data/**/*.mat', recursive=True)
+    # Search relative to repo root or scripts folder
+    search_paths = ['data/**/*.mat', '../data/**/*.mat']
+    mat_files = []
+    for path in search_paths:
+        mat_files.extend(glob.glob(path, recursive=True))
+    
+    # Remove duplicates and resolve absolute paths
+    mat_files = list(set([os.path.abspath(f) for f in mat_files]))
     print(f"Found {len(mat_files)} .mat files.")
     
     for file_path in mat_files:

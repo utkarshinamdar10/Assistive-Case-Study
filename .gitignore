@@ -1,0 +1,10 @@
+# Ignore all files inside the documentation folder
+documentation/*
+
+# Do NOT ignore the public technical report
+!documentation/Case_Study_Technical_Report.md
+
+# Ignore Jupyter Checkpoints and Python caches
+.ipynb_checkpoints/
+__pycache__/
+*.pyc
